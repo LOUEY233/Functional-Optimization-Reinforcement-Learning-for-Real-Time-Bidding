@@ -6,9 +6,11 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 import random
 import numpy as np
+import pandas as pd
 from collections import namedtuple, deque
 
 device = torch.device("cpu")
+
 
 class DQNAgent():
     def __init__(self,budget,state,observation_space,action_space):
@@ -45,20 +47,30 @@ class DQNAgent():
                 bid_price = temp
         return bid_price
 
-    def get_lambda(self,w,dw,bid_price):
-        return dw[bid_price-10]/(w[bid_price-10]+bid_price*dw[bid_price-10]+0.000001)
+    def get_lambda(self,win_prob_result,bid_price,theta): # input is the win prob distribution over bid price, the current bid price, and theta
+        current_prob = win_prob_result['w(bj)'][win_prob_result.bj==bid_price]
+        if bid_price != 10:
+            previous_prob = win_prob_result['w(bj)'][win_prob_result.bj==(bid_price-1)]
+        else:
+            previous_prob = current_prob
+        delta_w = current_prob - previous_prob
+        l = theta * delta_w / (current_prob + bid_price * delta_w)
+        return l
 
-    def update_w_dw(self,bid_price,flag, request):
-        bid_price = int(bid_price)
-        if bid_price > 99:
-            bid_price = 99
-        elif bid_price < 10:
-            bid_price = 10
-        self.log[bid_price-10][0] += 1
-        if flag == 1:
-            self.log[bid_price-10][1] += 1
-        self.dw = [self.log[i][1]/request for i in range(90)]
-        self.w[bid_price-10] = self.log[bid_price-10][0]/(self.log[bid_price-10][1]+0.00001)
+    # def get_lambda(self,w,dw,bid_price):
+    #     return dw[bid_price-10]/(w[bid_price-10]+bid_price*dw[bid_price-10]+0.000001)
+
+    # def update_w_dw(self,bid_price,flag, request):
+    #     bid_price = int(bid_price)
+    #     if bid_price > 99:
+    #         bid_price = 99
+    #     elif bid_price < 10:
+    #         bid_price = 10
+    #     self.log[bid_price-10][0] += 1
+    #     if flag == 1:
+    #         self.log[bid_price-10][1] += 1
+    #     self.dw = [self.log[i][1]/request for i in range(90)]
+    #     self.w[bid_price-10] = self.log[bid_price-10][0]/(self.log[bid_price-10][1]+0.00001)
 
     def setup(self):
         self.reward = []
