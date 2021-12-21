@@ -14,11 +14,16 @@ L = np.arange(0.00,0.01,0.00005) #need change
 action_space1 = len(bid_option)
 action_space2 = len(L)
 
+theta = 0.001 # CTR
 budget = 50000
 budget_consumption_rate = 0  # recent consumption rate
 operation = 0
 interval = 0
 win_rate = 0
+
+global_bi = []
+global_wi = []
+global_zi = []
 
 Agent1_baseline1 = DQNAgent(budget=budget, state=[0, 0, 0, 0], observation_space=4, action_space=action_space1)
 Agent2_baseline2 = DQNAgent(budget=budget, state=[0, 0, 0, 0], observation_space=4, action_space=action_space1)
@@ -63,6 +68,7 @@ for time in range(10):
             if Agents[i].budget < temp_price:
                 temp_price = Agents[i].budget
             bid_p.append(temp_price)
+            global_bi.append(temp_price)
             Agents[i].bid_log.append(temp_price)
         total_market.append(np.sort(bid_p)[2])
         if len(bid_p) != 4:
@@ -72,23 +78,33 @@ for time in range(10):
         for i in range(4):
             if bid_p[i] == np.max(bid_p):
                 reward_1.append(5)
-                if i == 2 or i == 3:
-                    Agents[i].update_w_dw(bid_price=bid_p[i], flag=1,request=request)
+                # if i == 2 or i == 3:
+                #     Agents[i].update_w_dw(bid_price=bid_p[i], flag=1,request=request)
                 second_price = np.sort(bid_p)[2]
+                global_wi.append(1)
+                global_zi.append(second_price)
                 Agents[i].budget -= second_price
                 Agents[i].interval.append(np.max(bid_p) - second_price)
                 Agents[i].consumption.append(second_price)
-                Agents[i].win_log.append(second_price)
+                Agents[i].win_log.append(second_price) # win log only contains second price
                 Agents[i].win += 1
                 Agents[i].win_rate.append(1)
                 Agents[i].win_period += 1
             else:
-                if i == 2 or i == 3:
-                    Agents[i].update_w_dw(bid_price=bid_p[i],flag=0,request=request)
+                # if i == 2 or i == 3:
+                #     Agents[i].update_w_dw(bid_price=bid_p[i],flag=0,request=request)
+                global_wi.append(0)
+                global_zi.append(0)
                 reward_1.append(-1)
                 Agents[i].consumption.append(0)
                 Agents[i].win_rate.append(0)
             Agents[i].budget_log.append(Agents[i].budget)
+        
+        global_data = pd.DataFrame({'bi':global_bi,'wi':global_wi,'zi':global_zi})
+        # print(global_data)
+        win_prob_result = win_prob_second(global_data)
+        # print(win_prob_result)
+
 
         for i in range(4):
             win_rate = np.sum(Agents[i].win_rate) / (len(Agents[i].win_rate)+0.001)
@@ -112,9 +128,9 @@ for time in range(10):
                     Agents[i].reward = reward_1[i]
             else:
                 if i == 3:
-                    Agents[i].reward = reward_1[i] - 500*Agents[i].get_lambda(Agents[i].w,Agents[i].dw,bid_p[3])
+                    Agents[i].reward = reward_1[i] - 500*Agents[i].get_lambda(win_prob_result,bid_p[3],theta)
                     if request % 1000 == 0:
-                        print(500*Agents[i].get_lambda(Agents[i].w,Agents[i].dw,bid_p[3]))
+                        print(500*Agents[i].get_lambda(win_prob_result,bid_p[3],theta))
                 Agents[i].reward = reward_1[i]
 
         for i in range(4):
