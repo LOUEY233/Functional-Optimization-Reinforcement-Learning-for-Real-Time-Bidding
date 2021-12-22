@@ -100,9 +100,10 @@ for time in range(10):
                 Agents[i].win_rate.append(0)
             Agents[i].budget_log.append(Agents[i].budget)
         
-        global_data = pd.DataFrame({'bi':global_bi,'wi':global_wi,'zi':global_zi})
+        # global_data = pd.DataFrame({'bi':global_bi,'wi':global_wi,'zi':global_zi})
         # print(global_data)
-        win_prob_result = win_prob_second(global_data)
+        unique_bid,win_prob = win_prob_second_list(global_bi,global_wi,global_zi)
+        # print(unique_bid,win_prob)
         # print(win_prob_result)
 
 
@@ -128,12 +129,13 @@ for time in range(10):
                     Agents[i].reward = reward_1[i]
             else:
                 if i == 3:
-                    Agents[i].reward = reward_1[i] - 500*Agents[i].get_lambda(win_prob_result,bid_p[3],theta)
+                    # modify
+                    Agents[i].reward = reward_1[i] - 500*Agents[i].get_lambda(unique_bid,win_prob,bid_p[3],theta)
                     if request % 1000 == 0:
-                        print(500*Agents[i].get_lambda(win_prob_result,bid_p[3],theta))
+                        print(500*Agents[i].get_lambda(unique_bid,win_prob,bid_p[3],theta))
                 Agents[i].reward = reward_1[i]
 
-        for i in range(4):
+        for i in range(4): 
             Agents[i].replayBuffer.push(Agents[i].state, Agents[i].action, Agents[i].reward, Agents[i].next_state, done)
             Agents[i].state = Agents[i].next_state
             Agents[i].episode_reward += Agents[i].reward
@@ -177,7 +179,7 @@ for time in range(10):
     for i in range(4):
         print(Agents[i].budget)
 for i in range(4):
-    torch.save(Agents[i].network.state_dict(), "./pth/MARL/agent{}.pt".format(i))
+    torch.save(Agents[i].network.state_dict(), "./agent{}.pt".format(i))
     # ttotal_win.append(Agents[i].win_log)
 writer.save()
 
