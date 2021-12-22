@@ -47,14 +47,21 @@ class DQNAgent():
                 bid_price = temp
         return bid_price
 
-    def get_lambda(self,win_prob_result,bid_price,theta): # input is the win prob distribution over bid price, the current bid price, and theta
-        current_prob = win_prob_result['w(bj)'][win_prob_result.bj==bid_price]
-        if bid_price != 10:
-            previous_prob = win_prob_result['w(bj)'][win_prob_result.bj==(bid_price-1)]
+    def get_lambda(self,unique_bid,win_prob,bid_price,theta): # input is the win prob distribution over bid price, the current bid price, and theta
+        current_prob = win_prob[unique_bid.index(bid_price)]
+        i=1
+        while not((bid_price-i) in unique_bid): # let (bid_price -i) has the winning probability and is in the price interval
+            if (bid_price - i) > 10: 
+                i += 1
+            else:
+                break
+        if (bid_price-i) > 10:
+            previous_prob = win_prob[unique_bid.index(bid_price-i)]
+            delta_w = (current_prob - previous_prob) / i
         else:
             previous_prob = current_prob
-        delta_w = current_prob - previous_prob
-        l = theta * delta_w / (current_prob + bid_price * delta_w)
+            delta_w = 0 # cannot compute delta_w by difference equation
+        l = theta * delta_w / (current_prob + bid_price * delta_w + 0.000001)
         return l
 
     # def get_lambda(self,w,dw,bid_price):
