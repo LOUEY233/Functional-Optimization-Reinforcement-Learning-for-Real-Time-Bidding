@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from Agent import *
 from config import *
-import concurrent.futures
-from multiprocessing import Pool
-
 
 device = torch.device("cpu")
 bid_option = np.arange(10, 100, 1)
@@ -105,7 +102,6 @@ for time in range(10):
         
         # global_data = pd.DataFrame({'bi':global_bi,'wi':global_wi,'zi':global_zi})
         # print(global_data)
-        p = Pool(5)
         # unique_bid,win_prob = p.map(win_prob_second_list, args=(global_bi,global_wi,global_zi))
         unique_bid,win_prob = win_prob_second_list(global_bi,global_wi,global_zi)
         # print(unique_bid,win_prob)
