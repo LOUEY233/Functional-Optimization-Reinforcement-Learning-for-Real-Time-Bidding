@@ -8,6 +8,7 @@ import pandas as pd
 from Agent import *
 from config import *
 
+
 device = torch.device("cpu")
 bid_option = np.arange(10, 100, 1)
 L = np.arange(0.00,0.01,0.00005) #need change
@@ -15,7 +16,7 @@ action_space1 = len(bid_option)
 action_space2 = len(L)
 
 theta = 0.001 # CTR
-budget = 50000
+budget = 5000
 budget_consumption_rate = 0  # recent consumption rate
 operation = 0
 interval = 0
@@ -47,7 +48,7 @@ for time in range(10):
 
 # checkpoint = torch.load("./pth/weight_ipinyou_ddqn_cpc.pt")
 # Our_client.network.load_state_dict(checkpoint)
-    n_request_left = 5000
+    n_request_left = 600
     bid_p = []
 
     for request in range(1, n_request_left + 1):
@@ -79,8 +80,12 @@ for time in range(10):
             if bid_p[i] == np.max(bid_p):
                 reward_1.append(5)
                 # if i == 2 or i == 3:
-                #     Agents[i].update_w_dw(bid_price=bid_p[i], flag=1,request=request)
-                second_price = np.sort(bid_p)[2]
+                #     Agents[i].update_w_dw(bid_price=bid_p[i], flag=1,request=request)\
+                sorted_price = np.sort(bid_p)
+                if sorted_price[2] != 0:
+                    second_price = np.sort(bid_p)[2]
+                else:
+                    second_price = np.sort(bid_p)[3]
                 global_wi.append(1)
                 global_zi.append(second_price)
                 Agents[i].budget -= second_price
@@ -146,7 +151,7 @@ for time in range(10):
             if Agents[0].budget < 100 and Agents[1].budget < 100 and Agents[2].budget < 100 and Agents[3].budget < 100:
                 break
 
-        if request % 2000 == 0:
+        if request % 200 == 0:
             print("state", Agents[i].state)
             for i in range(4):
                 print(Agents[i].reward)
@@ -169,7 +174,7 @@ for time in range(10):
     print("*****************")
     output = {"market_price": total_market, "bid_price1": Agents[0].bid_log,
               "bid_price2": Agents[1].bid_log, "bid_price3": Agents[2].bid_log,
-              "bid_price3": Agents[3].bid_log,
+              "bid_price4": Agents[3].bid_log,
               "A1_b_log":Agents[0].budget_log,"A2_b_log":Agents[1].budget_log,"A3_b_log":Agents[2].budget_log,"A4_b_log":Agents[3].budget_log}
     output = pd.DataFrame(output)
     output.to_excel(writer,sheet_name='{}'.format(time))
