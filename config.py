@@ -7,7 +7,7 @@ gamma = 0.95
 
 epsilon_start = 1.0
 epsilon_final = 0.01
-epsilon_decay = 20000
+epsilon_decay = 3000
 
 
 def epsilon_by_frame(request):
@@ -32,4 +32,4 @@ def win_prob_second_list(bi,wi,zi):
     return bk,wo
 
 if __name__ == '__main__':
-    print(epsilon_by_frame(150000))
+    print(epsilon_by_frame(3000))
