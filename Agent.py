@@ -11,7 +11,6 @@ from collections import namedtuple, deque
 
 device = torch.device("cpu")
 
-
 class DQNAgent():
     def __init__(self,budget,state,observation_space,action_space):
         super(DQNAgent, self).__init__()
@@ -39,33 +38,62 @@ class DQNAgent():
         self.w = [0 for i in range(90)]
         self.dw = [0 for i in range(90)]
 
-    def get_price(self,w,dw,l):
+    def get_price(self,w,dw,l,h):
         bid_price = 50
         for i in range(10,100):
-            temp = (dw[i-10]/(l+0.00000001)-w[i-10])/(dw[i-10]+0.0000001)
+            temp = (dw[i-10]/(l+0.00000001)-h*w[i-10])/(dw[i-10]+0.0000001)
             if abs(temp - i) < bid_price:
                 bid_price = temp
+        if bid_price > 100:
+            bid_price = 100
+        elif bid_price < 0:
+            bid_price = 0
         return bid_price
 
-    def get_lambda(self,unique_bid,win_prob,bid_price,theta): # input is the win prob distribution over bid price, the current bid price, and theta
-        current_prob = win_prob[unique_bid.index(bid_price)]
-        i=1
-        while not((bid_price-i) in unique_bid): # let (bid_price -i) has the winning probability and is in the price interval
-            if (bid_price - i) > 10: 
-                i += 1
+    def get_price_unbiased(self,unique_bid,win_prob,l):
+        bid_price = 50
+        for i in unique_bid:
+            h = self.get_h(unique_bid,i)
+            current_prob = win_prob[unique_bid.index(i)]
+            if (i-h) > 10:
+                previous_prob = win_prob[unique_bid.index(i-h)]
+                delta_w = current_prob - previous_prob
+            else:
+                previous_prob = current_prob
+                delta_w = 0
+            temp = (delta_w/(l+0.00000001)-h*current_prob)/(delta_w+0.0000001)
+            if abs(temp - i) < bid_price:
+                bid_price = temp
+        if bid_price > 100:
+            bid_price = 100
+        elif bid_price < 0:
+            bid_price = 0
+        return bid_price
+    
+    def get_h(self,unique_bid,bid_price):
+        # current_prob = win_prob[unique_bid.index(bid_price)]
+        h=1
+        while not((bid_price-h) in unique_bid): # let (bid_price -i) has the winning probability and is in the price interval
+            if (bid_price - h) > 10: 
+                h += 1
             else:
                 break
-        if (bid_price-i) > 10:
-            previous_prob = win_prob[unique_bid.index(bid_price-i)]
-            delta_w = (current_prob - previous_prob) / i
+        return h
+
+    def get_lambda_unbiased(self,unique_bid,win_prob,bid_price,theta): # input is the win prob distribution over bid price, the current bid price, and theta
+        current_prob = win_prob[unique_bid.index(bid_price)]
+        h = self.get_h(unique_bid,bid_price)
+        if (bid_price-h) > 10:
+            previous_prob = win_prob[unique_bid.index(bid_price-h)]
+            delta_w = current_prob - previous_prob
         else:
-            previous_prob = current_prob
+            # previous_prob = current_prob
             delta_w = 0 # cannot compute delta_w by difference equation
-        l = theta * delta_w / (current_prob + bid_price * delta_w + 0.000001)
+        l = theta * delta_w / (h*current_prob + bid_price * delta_w + 0.000001)
         return l
 
-    # def get_lambda(self,w,dw,bid_price):
-    #     return dw[bid_price-10]/(w[bid_price-10]+bid_price*dw[bid_price-10]+0.000001)
+    def get_lambda_biased(self,w,dw,bid_price):
+        return dw[bid_price-10]/(w[bid_price-10]+bid_price*dw[bid_price-10]+0.000001)
 
     # def update_w_dw(self,bid_price,flag, request):
     #     bid_price = int(bid_price)
@@ -76,8 +104,24 @@ class DQNAgent():
     #     self.log[bid_price-10][0] += 1
     #     if flag == 1:
     #         self.log[bid_price-10][1] += 1
-    #     self.dw = [self.log[i][1]/request for i in range(90)]
-    #     self.w[bid_price-10] = self.log[bid_price-10][0]/(self.log[bid_price-10][1]+0.00001)
+    #     self.dw = [self.log[i][1]/request for i in range(90)]  # density 
+    #     self.w[bid_price-10] = self.log[bid_price-10][1]/(self.log[bid_price-10][0]+0.00001) # win number / bid number
+
+    def update_w_dw(self,bid_price,flag, request):
+        bid_price = int(bid_price)
+        if bid_price > 99:
+            bid_price = 99
+        elif bid_price < 10:
+            bid_price = 10
+        self.log[bid_price-10][0] += 1
+        if flag == 1:
+            self.log[bid_price-10][1] += 1
+        win_time = 0
+        for i in range(90):
+            win_time += self.log[i][1]
+        self.dw = [self.log[i][1]/(win_time+0.00001) for i in range(90)] # density
+        # self.w[bid_price-10] = self.log[bid_price-10][1]/(self.log[bid_price-10][0]+0.00001)
+        self.w = np.cumsum(self.dw)
 
     def setup(self):
         self.reward = []
