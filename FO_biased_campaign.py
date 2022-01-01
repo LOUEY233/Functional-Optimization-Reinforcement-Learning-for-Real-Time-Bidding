@@ -8,14 +8,14 @@ import pandas as pd
 from Agent import *
 from config import *
 
+np.random.seed(0)
 device = torch.device("cpu")
 bid_option = np.arange(10, 100, 1)
 L = np.arange(0.00,0.01,0.00005) #need change
 action_space1 = len(bid_option)
 action_space2 = len(L)
 
-h=1 # h=1 for biased model
-budget = 50000
+budget = 1250000
 budget_consumption_rate = 0  # recent consumption rate
 operation = 0
 interval = 0
@@ -54,7 +54,7 @@ for time in range(10):
 
 # checkpoint = torch.load("./pth/weight_ipinyou_ddqn_cpc.pt")
 # Our_client.network.load_state_dict(checkpoint)
-    n_request_left = 5000
+    n_request_left = 50000
     bid_p = []
 
     for request in range(1, n_request_left + 1):
@@ -65,8 +65,10 @@ for time in range(10):
             Agents[i].action = Agents[i].network.act(Agents[i].state, epsilon)
             if i == 2:
                 if random.random() > epsilon:
-                    l = L[Agents[i].action] # L = lambda / c
-                    temp_price = Agents[i].get_price(Agents[i].w,Agents[i].dw,l,h)
+                    l = L[Agents[i].action]
+                    temp_price = Agents[i].get_price(Agents[i].w,Agents[i].dw,l)
+                    if temp_price < 10:
+                        temp_price = 10
                 else:
                     temp_price = random.randrange(10,100,1)
                 temp_price = int(temp_price)
@@ -114,7 +116,7 @@ for time in range(10):
             Agents[i].next_state[1] = consumption_rate
             Agents[i].next_state[0] = remaining_budget
             if len(Agents[i].state) == 5:
-                Agents[i].next_state[4] = Agents[i].get_lambda_biased(Agents[i].w,Agents[i].dw,Agents[i].bid_log[-1])
+                Agents[i].next_state[4] = Agents[i].get_lambda(Agents[i].w,Agents[i].dw,Agents[i].bid_log[-1])
 
         for i in range(4):
             if Agents[0].budget < 100 and Agents[1].budget < 100 and Agents[2].budget < 100 and Agents[3].budget < 100:
@@ -127,9 +129,9 @@ for time in range(10):
                     Agents[i].reward = reward_1[i]
             else:
                 if i == 3:
-                    Agents[i].reward = reward_1[i] + 500*Agents[i].get_lambda_biased(Agents[i].w,Agents[i].dw,bid_p[3])
+                    Agents[i].reward = reward_1[i] + 500*Agents[i].get_lambda(Agents[i].w,Agents[i].dw,bid_p[3])
                     if request % 1000 == 0:
-                        print(500*Agents[i].get_lambda_biased(Agents[i].w,Agents[i].dw,bid_p[3]))
+                        print(500*Agents[i].get_lambda(Agents[i].w,Agents[i].dw,bid_p[3]))
                 else:
                     Agents[i].reward = reward_1[i]
 
@@ -144,7 +146,7 @@ for time in range(10):
             if Agents[0].budget < 100 and Agents[1].budget < 100 and Agents[2].budget < 100 and Agents[3].budget < 100:
                 break
 
-        if request % 2000 == 0:
+        if request % 20000 == 0:
             print("state", Agents[i].state)
             for i in range(4):
                 print(Agents[i].reward)
@@ -167,7 +169,7 @@ for time in range(10):
     print("*****************")
     output = {"market_price": total_market, "bid_price1": Agents[0].bid_log,
               "bid_price2": Agents[1].bid_log, "bid_price3": Agents[2].bid_log,
-              "bid_price3": Agents[3].bid_log,
+              "bid_price4": Agents[3].bid_log,
               "A1_b_log":Agents[0].budget_log,"A2_b_log":Agents[1].budget_log,"A3_b_log":Agents[2].budget_log,"A4_b_log":Agents[3].budget_log}
     output = pd.DataFrame(output)
     output.to_excel(writer,sheet_name='{}'.format(time))
@@ -179,7 +181,7 @@ for time in range(10):
     for i in range(4):
         win_record[i] += Agents[i].win
 for i in range(4):
-    torch.save(Agents[i].network.state_dict(), "./pth/MARL/agent{}.pt".format(i))
+    torch.save(Agents[i].network.state_dict(), "./agent{}.pt".format(i))
     # ttotal_win.append(Agents[i].win_log)
 writer.save()
 
