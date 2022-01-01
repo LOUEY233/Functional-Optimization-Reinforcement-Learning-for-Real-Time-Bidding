@@ -23,3 +23,6 @@ profitability.
 
 **Index Terms**—Real-Time Bidding Optimization, Multi-Agents
 Deep Reinforcement Learning, Functional Optimization.
+
+
+Any question please contact yiningl@kean.edu and lucha@kean.edu
