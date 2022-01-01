@@ -16,12 +16,11 @@ action_space2 = len(L)
 
 h = 1
 theta = 0.001 # CTR
-budget = 5000
+budget = 25000
 budget_consumption_rate = 0  # recent consumption rate
 operation = 0
 interval = 0
 win_rate = 0
-
 global_bi = []
 global_wi = []
 global_zi = []
@@ -59,7 +58,7 @@ for time in range(10):
 
 # checkpoint = torch.load("./pth/weight_ipinyou_ddqn_cpc.pt")
 # Our_client.network.load_state_dict(checkpoint)
-    n_request_left = 500
+    n_request_left = 1000
     bid_p = []
     unique_bid = list()
     win_prob = list()
